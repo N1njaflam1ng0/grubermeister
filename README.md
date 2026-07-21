@@ -1,13 +1,7 @@
 # grubermeister
+<img width="1904" height="972" alt="image" src="https://github.com/user-attachments/assets/d8280fc0-a605-448e-80af-185c00f9d259" />
 
-A Jägermeister-inspired GRUB theme: boot entries down the left, stag emblem on
-the right — where the emblem **is the icon of whichever entry is highlighted**.
-
-Works on any distro's GRUB 2. The theme format is fully declarative, so there
-is nothing distro-specific in `theme.txt` itself; the only thing that differs
-between distros is how entries get their `--class`, which is what selects the
-emblem.
-
+A lot of icons is still missing and i am working towards an install.sh file
 ## Install
 
 ### Any Linux distro
@@ -150,12 +144,3 @@ Without Nix, `preview.sh` is portable bash — it needs `grub-mkrescue`,
 `xorriso`, `mtools`, `qemu`, and `fc-match` on `PATH`. Note that it boots via
 BIOS rather than UEFI, so it is not exercising the firmware path most modern
 machines use; rendering is identical in practice, but it is not proof.
-
-## Placeholder art
-
-`theme/background.png` and `theme/icons/*.png` are generated placeholders —
-flat geometry to prove the layout works. Replace them with real art. The
-background deliberately has **no cross**: that is the emblem overlay.
-
-If you publish this, an original Jägermeister-*inspired* stag will save you
-trademark grief versus tracing the real mark.
