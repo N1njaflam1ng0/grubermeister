@@ -1,0 +1,86 @@
+# grubermeister — Jägermeister-inspired GRUB theme
+#
+# Layout: boot entries on the left, stag emblem on the right. The "cross"
+# above the stag is not part of the background image — it is a second
+# boot_menu sized to exactly one item, which GRUB forces to track the
+# current selection (see make_selected_item_visible() in gui_list.c).
+# The result: the emblem is always the icon of the highlighted entry.
+
+desktop-image: "background.png"
+desktop-image-scale-method: "crop"
+title-text: ""
+
+# Console (pressing `c`) and entry editor (`e`)
+terminal-border: "0"
+terminal-left: "6%"
+terminal-top: "10%"
+terminal-width: "88%"
+terminal-height: "76%"
+terminal-font: "CaskaydiaCove Regular 18"
+
+# ── Boot entries, left column ────────────────────────────────────────────
++ boot_menu {
+	left = 8%
+	top = 50%-180
+	width = 40%
+	height = 360
+
+	item_font = "CaskaydiaCove Regular 24"
+	selected_item_font = "CaskaydiaCove Regular 24"
+	item_color = "#c9b98a"
+	selected_item_color = "#ff6a00"
+
+	item_height = 44
+	item_spacing = 12
+	item_padding = 0
+
+	# No icons in the list itself — the emblem on the right is the icon.
+	icon_width = 0
+	icon_height = 0
+	item_icon_space = 0
+
+	scrollbar = false
+}
+
+# ── The "cross": emblem of the currently highlighted entry ───────────────
+# Two non-obvious tricks hold this together — see README.
+#
+# 1. item_spacing = -item_height makes item_height + item_spacing == 0, which
+#    trips the early return in get_num_shown_items() and pins the menu to
+#    exactly one visible item: the selected one. Sizing via `height` does NOT
+#    work — list_get_minimal_size() hardcodes a 3-item floor that the canvas
+#    silently enforces.
+#
+# 2. item_icon_space pushes the entry's text off the right screen edge, where
+#    the canvas clips it. Shrinking `width` does not hide it: minimum width
+#    always reserves room for the label.
++ boot_menu {
+	left = 68%
+	top = 22%
+	width = 256
+	height = 256
+
+	icon_width = 256
+	icon_height = 256
+	item_height = 256
+	item_spacing = -256
+	item_padding = 0
+	item_icon_space = 512
+
+	scrollbar = false
+}
+
+# ── Countdown ────────────────────────────────────────────────────────────
++ label {
+	id = "__timeout__"
+
+	left = 8%
+	top = 100%-64
+	width = 40%
+	height = 28
+
+	text = "Booting in %d s"
+	align = "left"
+	font = "CaskaydiaCove Regular 18"
+	color = "#7a6f52"
+}
