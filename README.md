@@ -3,62 +3,115 @@
 A Jägermeister-inspired GRUB theme: boot entries down the left, stag emblem on
 the right — where the emblem **is the icon of whichever entry is highlighted**.
 
-## How the swapping emblem works
+Works on any distro's GRUB 2. The theme format is fully declarative, so there
+is nothing distro-specific in `theme.txt` itself; the only thing that differs
+between distros is how entries get their `--class`, which is what selects the
+emblem.
 
-GRUB's theme format is fully declarative: no conditionals, no scripting, no
-"on selection change" hook. There is no component that renders "the selected
-entry's image".
+## Install
 
-The trick is `make_selected_item_visible()` in GRUB's `gfxmenu/gui_list.c`,
-which clamps a `boot_menu`'s `first_shown_index` so the selection is always
-on screen. Get a `boot_menu` down to **exactly one visible item** and that
-clamp becomes an identity: `first_shown_index == selected_index`, always.
+### Any Linux distro
 
-So `theme.txt` declares two `boot_menu` components over the same menu:
+**1. Build the fonts.** GRUB reads only bitmap `.pf2` fonts, one file per point
+size, and they are *not* committed to this repo. Skipping this step is the most
+common way to get a broken-looking theme: `theme.txt` asks for a font name that
+does not exist, GRUB silently falls back to its default, and the layout comes
+out wrong for reasons that look unrelated.
 
-1. the real list on the left, with icons disabled;
-2. a one-item menu on the right that renders nothing but the icon.
+You need CaskaydiaCove Nerd Font installed, plus `grub-mkfont` (usually in the
+`grub` package):
 
-Getting (2) to one item is where it gets ugly, and neither half is obvious.
-
-**Sizing it down to one item does not work.** `list_get_minimal_size()`
-hardcodes `num_items = 3`, and `gui_canvas.c` silently raises any smaller
-component to that floor — so `height = 256` becomes ~768 and you get three
-stacked emblems. The way through is the early return at the top of
-`get_num_shown_items()`:
-
-```c
-if (item_height + item_vspace <= 0)
-  return 1;
+```console
+$ ttf=$(fc-match -f '%{file}' 'CaskaydiaCove Nerd Font:style=Regular')
+$ for size in 18 24; do
+      grub-mkfont -s "$size" -n "CaskaydiaCove" -o "theme/caskaydia-$size.pf2" "$ttf"
+  done
 ```
 
-Setting `item_spacing = -item_height` makes that sum zero and pins the menu
-to one item regardless of its bounds.
+The `-n` name is what `theme.txt` matches against, and it is *not* derived from
+the filename — `grub-mkfont` composes the internal name as
+`"<-n> <style> <size>"`, so `-n "CaskaydiaCove" -s 24` is referenced as
+`"CaskaydiaCove Regular 24"`. Keep the two in sync if you change fonts.
 
-**Hiding the entry's text does not work by shrinking `width` either** —
-minimum width always reserves room for the label (GRUB literally measures the
-string `"Typical OS"`). Instead `item_icon_space` pushes the text past the
-right screen edge, where the canvas clips it.
+**2. Copy the theme into place.**
 
-Icons resolve to `<theme>/icons/<class>.png`, where `<class>` comes from the
-menuentry's `--class` (see `gfxmenu/icon_manager.c`). Hence `icons/nixos.png`,
-`icons/windows.png`, and so on.
+```console
+# cp -r theme /boot/grub/themes/grubermeister
+```
 
-The background image deliberately has **no cross** — only the halo. The cross
-is the overlay.
+On Fedora/RHEL that path is `/boot/grub2/themes/` instead.
 
-## NixOS: entries need a `--class`
+**3. Point GRUB at it** in `/etc/default/grub`:
 
-This is the one part that does not work out of the box. NixOS emits
-`menuentry "$name" $options {` with `$options` taken straight from
-`boot.loader.grub.entryOptions`, and the default carries no class — so
-without this, NixOS entries render no emblem. (os-prober entries already get
-`--class windows` etc. for free.)
+```sh
+GRUB_THEME=/boot/grub/themes/grubermeister/theme.txt
+GRUB_GFXMODE=1920x1080
+```
+
+`theme.txt` mixes percentages with fixed pixel sizes, and the emblem is 256px
+square, so it is laid out for a reasonably large framebuffer. If your firmware
+cannot deliver the mode you ask for, GRUB drops to something like 1024x768 or
+640x480 and the emblem can run off the right edge. To see what a given machine
+actually offers, press `c` at the boot menu and run `videoinfo`.
+
+**4. Regenerate the config.**
+
+```console
+# grub-mkconfig -o /boot/grub/grub.cfg
+```
+
+Debian/Ubuntu wrap this as `update-grub`; Fedora/RHEL write to
+`/boot/grub2/grub.cfg`.
+
+#### Getting the right emblem
+
+Icons resolve to `theme/icons/<class>.png`, where `<class>` comes from the
+menuentry's `--class`. An entry can carry several, and GRUB tries them **in
+order, first match wins** (`grub-core/gfxmenu/icon_manager.c`).
+
+`grub-mkconfig` emits `--class $distributor --class gnu-linux --class gnu
+--class os`, so on Arch your entries are `--class arch --class gnu-linux ...`.
+That is why this repo ships a generic `icons/gnu-linux.png` — every distro's
+entries reach it, so you get an emblem out of the box. To give your distro its
+own, drop in `icons/arch.png` (or `icons/debian.png`, …) and it wins
+automatically, being earlier in the list.
+
+Windows and other os-prober entries already get `--class windows` and friends
+for free.
+
+Icons must be **truecolour** PNG — GRUB's PNG loader ignores paletted files and
+renders nothing, silently. ImageMagick will happily emit a paletted PNG for
+simple flat art, so force it:
+
+```console
+$ magick ... PNG32:icons/arch.png
+```
+
+They want to read at 256px against a busy background, so flat single-colour
+silhouettes beat full-colour logos.
+
+### NixOS
+
+The flake builds the fonts for you, so there is no manual `grub-mkfont` step.
 
 ```nix
+# flake.nix
+inputs.grubermeister.url = "github:N1njaflam1ng0/grubermeister";
+```
+
+```nix
+# configuration
+boot.loader.grub.theme = "${inputs.grubermeister.packages.${pkgs.system}.default}";
+
 boot.loader.grub.entryOptions    = "--unrestricted --class nixos";
 boot.loader.grub.subEntryOptions = "--unrestricted --class nixos-generation";
 ```
+
+The `entryOptions` lines are required, and are the one part that does not work
+out of the box. NixOS emits `menuentry "$name" $options {` with `$options`
+taken straight from `entryOptions`, and the default carries no class at all —
+so without these, NixOS entries render no emblem. (os-prober entries still get
+`--class windows` etc. for free.)
 
 Check the current default of `entryOptions` before overriding so you don't
 silently drop `--unrestricted`.
@@ -69,47 +122,34 @@ silently drop `--unrestricted`.
 $ nix run .#preview
 ```
 
-Builds a throwaway ISO with a fake menu (one entry per icon class) and boots
-it in QEMU. Edit `theme/theme.txt`, re-run, look. ~10s per iteration.
+Builds a throwaway ISO with a fake menu — one entry per icon class — and boots
+it in QEMU. Edit `theme/theme.txt`, re-run, look. ~10s per iteration. Extra
+arguments are passed through to QEMU, e.g. `nix run .#preview -- -display none`.
 
-## Use it
+Nix only sees git-tracked files, so a new `theme/icons/foo.png` you haven't
+`git add`ed will not be in the ISO — it renders nothing, which looks exactly
+like the paletted-PNG failure above.
 
-```nix
-# flake.nix
-inputs.grubermeister.url = "github:<you>/grubermeister";
+To iterate against the working tree instead, including untracked files:
+
+```console
+$ nix develop
+$ ./preview.sh
 ```
 
-```nix
-# configuration
-boot.loader.grub.theme = "${inputs.grubermeister.packages.${pkgs.system}.default}";
-boot.loader.grub.entryOptions    = "--unrestricted --class nixos";
-boot.loader.grub.subEntryOptions = "--unrestricted --class nixos-generation";
-```
+This reads `theme/` live and builds the fonts via fontconfig rather than the
+derivation, so it needs CaskaydiaCove installed on the host.
 
-## Fonts
-
-GRUB reads only bitmap `.pf2` fonts, one file per point size. The build runs
-`grub-mkfont` over CaskaydiaCove Nerd Font at 18pt and 24pt. The `-n` name is
-what `theme.txt`'s `font = "..."` matches against — it is *not* derived from
-the filename, so the two must be kept in sync.
-
-## Gotchas worth knowing before you edit
-
-- **Icons must be truecolour PNG.** GRUB's PNG loader ignores paletted files —
-  they render as nothing, silently. ImageMagick will happily emit a paletted
-  PNG for simple flat art, so force it: `magick ... PNG32:icon.png`.
-- **Font names are not filenames.** `grub-mkfont` composes the internal name as
-  `"<-n> <style> <size>"`, and that full string is what `theme.txt` matches.
-  `-n "CaskaydiaCove" -s 24` must be referenced as `"CaskaydiaCove Regular 24"`.
-  A mismatch silently falls back to the default font.
-- **Icon size is `icon_width`/`icon_height`**, independent of `item_height`.
+Without Nix, `preview.sh` is portable bash — it needs `grub-mkrescue`,
+`xorriso`, `mtools`, `qemu`, and `fc-match` on `PATH`. Note that it boots via
+BIOS rather than UEFI, so it is not exercising the firmware path most modern
+machines use; rendering is identical in practice, but it is not proof.
 
 ## Placeholder art
 
 `theme/background.png` and `theme/icons/*.png` are generated placeholders —
-flat geometry to prove the layout works. Replace them with real art. Icons
-want to read at 256px against a busy background, so flat single-colour
-silhouettes beat full-colour logos.
+flat geometry to prove the layout works. Replace them with real art. The
+background deliberately has **no cross**: that is the emblem overlay.
 
 If you publish this, an original Jägermeister-*inspired* stag will save you
 trademark grief versus tracing the real mark.
