@@ -23,13 +23,21 @@
         # GRUB only reads bitmap .pf2 fonts, and each point size is a
         # separate file. grub-mkfont composes the internal name as
         # "<-n> <style> <size>", and that full string — not the filename —
-        # is what theme.txt's `font = "..."` must match. So -n "CaskaydiaCove"
-        # at -s 24 is referenced as "CaskaydiaCove Regular 24".
+        # is what theme.txt's `font = "..."` must match. So -n "Potsdam"
+        # at -s 24 is referenced as "Potsdam Regular 24".
+        #
+        # Two faces, deliberately: Potsdam (vendored, see fonts/README) is the
+        # branded blackletter for menu entries, CaskaydiaCove the monospace for
+        # the console and countdown. Only the sizes actually referenced by
+        # theme.txt are built.
         installPhase = ''
           runHook preInstall
 
           mkdir -p $out
           cp -r ./* $out/
+
+          grub-mkfont -s 24 -n "Potsdam" \
+            -o "$out/potsdam-24.pf2" ${./fonts/Potsdam.ttf}
 
           ttf=$(find ${pkgs.nerd-fonts.caskaydia-cove}/share/fonts \
                   -name 'CaskaydiaCoveNerdFont-Regular.ttf' | head -1)
@@ -38,10 +46,8 @@
             exit 1
           fi
 
-          for size in 18 24; do
-            grub-mkfont -s "$size" -n "CaskaydiaCove" \
-              -o "$out/caskaydia-$size.pf2" "$ttf"
-          done
+          grub-mkfont -s 18 -n "CaskaydiaCove" \
+            -o "$out/caskaydia-18.pf2" "$ttf"
 
           runHook postInstall
         '';

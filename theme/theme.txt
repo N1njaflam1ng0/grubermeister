@@ -21,12 +21,15 @@ terminal-font: "CaskaydiaCove Regular 18"
 # ── Boot entries, left column ────────────────────────────────────────────
 + boot_menu {
 	left = 8%
-	top = 50%-180
+	top = 50%-400
 	width = 40%
 	height = 360
 
-	item_font = "CaskaydiaCove Regular 24"
-	selected_item_font = "CaskaydiaCove Regular 24"
+	# Potsdam (blackletter) for the branded surface only. The terminal and
+	# countdown stay monospace — you read kernel params and type recovery
+	# commands there. Name is what grub-mkfont stamps, not the filename.
+	item_font = "Potsdam Regular 24"
+	selected_item_font = "Potsdam Regular 24"
 	item_color = "#c9b98a"
 	selected_item_color = "#ff6a00"
 
@@ -35,9 +38,9 @@ terminal-font: "CaskaydiaCove Regular 18"
 	item_padding = 0
 
 	# No icons in the list itself — the emblem on the right is the icon.
-	icon_width = 0
-	icon_height = 0
-	item_icon_space = 0
+	icon_width = 24
+	icon_height = 24
+	item_icon_space = 30
 
 	scrollbar = false
 }
@@ -56,16 +59,16 @@ terminal-font: "CaskaydiaCove Regular 18"
 #    always reserves room for the label.
 + boot_menu {
 	left = 68%
-	top = 22%
-	width = 256
-	height = 256
+	top = 24%
+	width = 86
+	height = 86
 
-	icon_width = 256
-	icon_height = 256
-	item_height = 256
-	item_spacing = -256
+	icon_width = 86
+	icon_height = 86
+	item_height = 86
+	item_spacing = -86
 	item_padding = 0
-	item_icon_space = 512
+	item_icon_space = 1028
 
 	scrollbar = false
 }

@@ -18,20 +18,26 @@ common way to get a broken-looking theme: `theme.txt` asks for a font name that
 does not exist, GRUB silently falls back to its default, and the layout comes
 out wrong for reasons that look unrelated.
 
-You need CaskaydiaCove Nerd Font installed, plus `grub-mkfont` (usually in the
-`grub` package):
+The theme uses two faces: **Potsdam**, a blackletter for the menu entries, and
+**CaskaydiaCove Nerd Font** for the console and countdown. Potsdam is vendored
+at `fonts/Potsdam.ttf` (see `fonts/README.md` for provenance and a licence
+caveat); CaskaydiaCove you need installed on the system. You also need
+`grub-mkfont`, usually in the `grub` package:
 
 ```console
+$ grub-mkfont -s 24 -n "Potsdam" -o theme/potsdam-24.pf2 fonts/Potsdam.ttf
 $ ttf=$(fc-match -f '%{file}' 'CaskaydiaCove Nerd Font:style=Regular')
-$ for size in 18 24; do
-      grub-mkfont -s "$size" -n "CaskaydiaCove" -o "theme/caskaydia-$size.pf2" "$ttf"
-  done
+$ grub-mkfont -s 18 -n "CaskaydiaCove" -o theme/caskaydia-18.pf2 "$ttf"
 ```
 
 The `-n` name is what `theme.txt` matches against, and it is *not* derived from
 the filename — `grub-mkfont` composes the internal name as
-`"<-n> <style> <size>"`, so `-n "CaskaydiaCove" -s 24` is referenced as
-`"CaskaydiaCove Regular 24"`. Keep the two in sync if you change fonts.
+`"<-n> <style> <size>"`, so `-n "Potsdam" -s 24` is referenced as
+`"Potsdam Regular 24"`. Keep the two in sync if you change fonts.
+
+Potsdam is deliberately kept out of `terminal-font`: it is a proportional
+display face, and the GRUB console is where you read kernel parameters and
+type recovery commands. If you swap fonts, keep something monospace there.
 
 **2. Copy the theme into place.**
 
