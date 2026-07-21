@@ -1,7 +1,7 @@
 # grubermeister — Jägermeister-inspired GRUB theme
 
 desktop-image: "background.png"
-desktop-image-scale-method: "fit"
+desktop-image-scale-method: "crop"
 title-text: ""
 
 # Console (pressing `c`) and entry editor (`e`)
