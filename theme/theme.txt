@@ -1,13 +1,7 @@
 # grubermeister — Jägermeister-inspired GRUB theme
-#
-# Layout: boot entries on the left, stag emblem on the right. The "cross"
-# above the stag is not part of the background image — it is a second
-# boot_menu sized to exactly one item, which GRUB forces to track the
-# current selection (see make_selected_item_visible() in gui_list.c).
-# The result: the emblem is always the icon of the highlighted entry.
 
 desktop-image: "background.png"
-desktop-image-scale-method: "crop"
+desktop-image-scale-method: "fit"
 title-text: ""
 
 # Console (pressing `c`) and entry editor (`e`)
@@ -18,16 +12,13 @@ terminal-width: "88%"
 terminal-height: "76%"
 terminal-font: "CaskaydiaCove Regular 18"
 
-# ── Boot entries, left column ────────────────────────────────────────────
+# Boot entries, left column 
 + boot_menu {
 	left = 8%
 	top = 50%-400
 	width = 40%
 	height = 360
 
-	# Potsdam (blackletter) for the branded surface only. The terminal and
-	# countdown stay monospace — you read kernel params and type recovery
-	# commands there. Name is what grub-mkfont stamps, not the filename.
 	item_font = "Potsdam Regular 24"
 	selected_item_font = "Potsdam Regular 24"
 	item_color = "#c9b98a"
@@ -37,7 +28,6 @@ terminal-font: "CaskaydiaCove Regular 18"
 	item_spacing = 12
 	item_padding = 0
 
-	# No icons in the list itself — the emblem on the right is the icon.
 	icon_width = 24
 	icon_height = 24
 	item_icon_space = 30
@@ -45,18 +35,7 @@ terminal-font: "CaskaydiaCove Regular 18"
 	scrollbar = false
 }
 
-# ── The "cross": emblem of the currently highlighted entry ───────────────
-# Two non-obvious tricks hold this together — see README.
-#
-# 1. item_spacing = -item_height makes item_height + item_spacing == 0, which
-#    trips the early return in get_num_shown_items() and pins the menu to
-#    exactly one visible item: the selected one. Sizing via `height` does NOT
-#    work — list_get_minimal_size() hardcodes a 3-item floor that the canvas
-#    silently enforces.
-#
-# 2. item_icon_space pushes the entry's text off the right screen edge, where
-#    the canvas clips it. Shrinking `width` does not hide it: minimum width
-#    always reserves room for the label.
+# The "cross": emblem of the currently highlighted entry
 + boot_menu {
 	left = 68%
 	top = 24%
@@ -73,7 +52,7 @@ terminal-font: "CaskaydiaCove Regular 18"
 	scrollbar = false
 }
 
-# ── Countdown ────────────────────────────────────────────────────────────
+# Countdown
 + label {
 	id = "__timeout__"
 
