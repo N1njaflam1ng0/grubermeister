@@ -1,94 +1,26 @@
 # grubermeister
 <img width="1904" height="972" alt="image" src="https://github.com/user-attachments/assets/d8280fc0-a605-448e-80af-185c00f9d259" />
 
-A lot of icons is still missing and i am working towards an install.sh file
+A Jägermeister-inspired GRUB theme.
+
 ## Install
 
 ### Any Linux distro
 
-**1. Build the fonts.** GRUB reads only bitmap `.pf2` fonts, one file per point
-size, and they are *not* committed to this repo. Skipping this step is the most
-common way to get a broken-looking theme: `theme.txt` asks for a font name that
-does not exist, GRUB silently falls back to its default, and the layout comes
-out wrong for reasons that look unrelated.
-
-The theme uses two faces: **Potsdam**, a blackletter for the menu entries, and
-**CaskaydiaCove Nerd Font** for the console and countdown. Potsdam is vendored
-at `fonts/Potsdam.ttf` (see `fonts/README.md` for provenance and a licence
-caveat); CaskaydiaCove you need installed on the system. You also need
-`grub-mkfont`, usually in the `grub` package:
-
 ```console
-$ grub-mkfont -s 24 -n "Potsdam" -o theme/potsdam-24.pf2 fonts/Potsdam.ttf
-$ ttf=$(fc-match -f '%{file}' 'CaskaydiaCove Nerd Font:style=Regular')
-$ grub-mkfont -s 18 -n "CaskaydiaCove" -o theme/caskaydia-18.pf2 "$ttf"
+$ wget -O - https://raw.githubusercontent.com/N1njaflam1ng0/grubermeister/main/install.sh | bash
 ```
 
-The `-n` name is what `theme.txt` matches against, and it is *not* derived from
-the filename — `grub-mkfont` composes the internal name as
-`"<-n> <style> <size>"`, so `-n "Potsdam" -s 24` is referenced as
-`"Potsdam Regular 24"`. Keep the two in sync if you change fonts.
+The script fetches the theme, builds the fonts, copies everything into your
+GRUB themes directory, points `/etc/default/grub` at it, and regenerates the
+GRUB config. It detects your distro to pick the right paths and update command
+(Debian/Ubuntu, Arch, Fedora/RHEL, SUSE, and derivatives).
 
-Potsdam is deliberately kept out of `terminal-font`: it is a proportional
-display face, and the GRUB console is where you read kernel parameters and
-type recovery commands. If you swap fonts, keep something monospace there.
-
-**2. Copy the theme into place.**
-
-```console
-# cp -r theme /boot/grub/themes/grubermeister
-```
-
-On Fedora/RHEL that path is `/boot/grub2/themes/` instead.
-
-**3. Point GRUB at it** in `/etc/default/grub`:
-
-```sh
-GRUB_THEME=/boot/grub/themes/grubermeister/theme.txt
-GRUB_GFXMODE=1920x1080
-```
-
-`theme.txt` mixes percentages with fixed pixel sizes, and the emblem is 256px
-square, so it is laid out for a reasonably large framebuffer. If your firmware
-cannot deliver the mode you ask for, GRUB drops to something like 1024x768 or
-640x480 and the emblem can run off the right edge. To see what a given machine
-actually offers, press `c` at the boot menu and run `videoinfo`.
-
-**4. Regenerate the config.**
-
-```console
-# grub-mkconfig -o /boot/grub/grub.cfg
-```
-
-Debian/Ubuntu wrap this as `update-grub`; Fedora/RHEL write to
-`/boot/grub2/grub.cfg`.
-
-#### Getting the right emblem
-
-Icons resolve to `theme/icons/<class>.png`, where `<class>` comes from the
-menuentry's `--class`. An entry can carry several, and GRUB tries them **in
-order, first match wins** (`grub-core/gfxmenu/icon_manager.c`).
-
-`grub-mkconfig` emits `--class $distributor --class gnu-linux --class gnu
---class os`, so on Arch your entries are `--class arch --class gnu-linux ...`.
-That is why this repo ships a generic `icons/gnu-linux.png` — every distro's
-entries reach it, so you get an emblem out of the box. To give your distro its
-own, drop in `icons/arch.png` (or `icons/debian.png`, …) and it wins
-automatically, being earlier in the list.
-
-Windows and other os-prober entries already get `--class windows` and friends
-for free.
-
-Icons must be **truecolour** PNG — GRUB's PNG loader ignores paletted files and
-renders nothing, silently. ImageMagick will happily emit a paletted PNG for
-simple flat art, so force it:
-
-```console
-$ magick ... PNG32:icons/arch.png
-```
-
-They want to read at 256px against a busy background, so flat single-colour
-silhouettes beat full-colour logos.
+**Potsdam** (the blackletter menu font) is vendored in the repo, but
+**CaskaydiaCove Nerd Font** — used for the console and countdown — needs to be
+installed on your system beforehand. Without it those fall back to GRUB's
+default font; the rest of the theme still works. You also need `grub-mkfont`,
+usually shipped in the `grub` / `grub2-tools` package.
 
 ### NixOS
 
@@ -115,32 +47,3 @@ so without these, NixOS entries render no emblem. (os-prober entries still get
 
 Check the current default of `entryOptions` before overriding so you don't
 silently drop `--unrestricted`.
-
-## Preview without rebooting
-
-```console
-$ nix run .#preview
-```
-
-Builds a throwaway ISO with a fake menu — one entry per icon class — and boots
-it in QEMU. Edit `theme/theme.txt`, re-run, look. ~10s per iteration. Extra
-arguments are passed through to QEMU, e.g. `nix run .#preview -- -display none`.
-
-Nix only sees git-tracked files, so a new `theme/icons/foo.png` you haven't
-`git add`ed will not be in the ISO — it renders nothing, which looks exactly
-like the paletted-PNG failure above.
-
-To iterate against the working tree instead, including untracked files:
-
-```console
-$ nix develop
-$ ./preview.sh
-```
-
-This reads `theme/` live and builds the fonts via fontconfig rather than the
-derivation, so it needs CaskaydiaCove installed on the host.
-
-Without Nix, `preview.sh` is portable bash — it needs `grub-mkrescue`,
-`xorriso`, `mtools`, `qemu`, and `fc-match` on `PATH`. Note that it boots via
-BIOS rather than UEFI, so it is not exercising the firmware path most modern
-machines use; rendering is identical in practice, but it is not proof.
