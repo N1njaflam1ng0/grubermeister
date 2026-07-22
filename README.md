@@ -41,8 +41,7 @@ boot.loader.grub.subEntryOptions = "--unrestricted --class nixos-generation";
 
 The `entryOptions` lines are required, and are the one part that does not work
 out of the box. NixOS emits `menuentry "$name" $options {` with `$options`
-taken straight from `entryOptions`, and the default carries no class at all —
-so without these, NixOS entries render no emblem. (os-prober entries still get
+taken straight from `entryOptions`, and the default carries no class at all so without these, NixOS entries render no emblem. (os-prober entries still get
 `--class windows` etc. for free.)
 
 Check the current default of `entryOptions` before overriding so you don't
