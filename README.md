@@ -17,7 +17,7 @@ GRUB config. It detects your distro to pick the right paths and update command
 (Debian/Ubuntu, Arch, Fedora/RHEL, SUSE, and derivatives).
 
 **Potsdam** (the blackletter menu font) is vendored in the repo, but
-**CaskaydiaCove Nerd Font** — used for the console and countdown — needs to be
+**CaskaydiaCove Nerd Font** used for the console and countdown — needs to be
 installed on your system beforehand. Without it those fall back to GRUB's
 default font; the rest of the theme still works. You also need `grub-mkfont`,
 usually shipped in the `grub` / `grub2-tools` package.
