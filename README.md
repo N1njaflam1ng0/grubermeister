@@ -22,6 +22,13 @@ installed on your system beforehand. Without it those fall back to GRUB's
 default font; the rest of the theme still works. You also need `grub-mkfont`,
 usually shipped in the `grub` / `grub2-tools` package.
 
+If `convert` (ImageMagick) is installed, the script also detects your
+screen's native resolution (via `xrandr`, or the DRM sysfs interface if
+there's no X display) and resizes `background.png` to match before
+installing it, pinning `GRUB_GFXMODE` to the same value. Without
+ImageMagick, the background stays at its bundled 1619x971 resolution and
+`GRUB_GFXMODE` is left untouched.
+
 ### NixOS
 
 The flake builds the fonts for you, so there is no manual `grub-mkfont` step.

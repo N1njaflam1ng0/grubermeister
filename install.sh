@@ -68,6 +68,63 @@ else
     echo >&2 '         Install CaskaydiaCove Nerd Font and re-run to fix.'
 fi
 
+# background.png is a single fixed-size asset (1619x971). theme.txt scales it
+# with desktop-image-scale-method "crop", so on a screen of a different
+# resolution GRUB stretches/crops that fixed image to fit -- soft or
+# oddly-cropped on anything far from 1619x971. Detect the real screen
+# resolution and resize the background to match before it's installed, and
+# pin GRUB_GFXMODE to the same value so the video mode GRUB picks and the
+# image resolution always agree instead of relying on GRUB_GFXMODE=auto
+# picking whatever the firmware happens to prefer.
+#
+# Detection prefers xrandr's connected/preferred output (works under X and
+# Xwayland); falls back to the DRM sysfs interface for a bare TTY or a
+# Wayland session without an X server.
+DETECTED_WIDTH=''
+DETECTED_HEIGHT=''
+
+if command -v xrandr > /dev/null 2>&1 && [[ -n "${DISPLAY:-}" ]]; then
+    read -r DETECTED_WIDTH DETECTED_HEIGHT < <(
+        xrandr --query | awk '
+            /^[A-Za-z0-9-]+ connected/ { in_output=1; next }
+            /^[A-Za-z0-9-]+ disconnected/ { in_output=0; next }
+            in_output && /\+/ {
+                split($1, r, "x")
+                print r[1], r[2]
+                exit
+            }
+        '
+    ) || true
+fi
+
+if [[ -z "$DETECTED_WIDTH" || -z "$DETECTED_HEIGHT" ]]; then
+    for status in /sys/class/drm/*/status; do
+        [[ -e "$status" ]] || continue
+        [[ "$(cat "$status")" == "connected" ]] || continue
+        modes="${status%status}modes"
+        [[ -e "$modes" ]] || continue
+        read -r DETECTED_WIDTH DETECTED_HEIGHT < <(head -n1 "$modes" | tr 'x' ' ') || true
+        [[ -n "$DETECTED_WIDTH" && -n "$DETECTED_HEIGHT" ]] && break
+    done
+fi
+
+if [[ -n "$DETECTED_WIDTH" && -n "$DETECTED_HEIGHT" ]]; then
+    if command -v convert > /dev/null 2>&1; then
+        echo "Detected screen resolution ${DETECTED_WIDTH}x${DETECTED_HEIGHT}; resizing background to match"
+        convert theme/background.png -resize "${DETECTED_WIDTH}x${DETECTED_HEIGHT}^" \
+            -gravity center -extent "${DETECTED_WIDTH}x${DETECTED_HEIGHT}" theme/background.png
+    else
+        echo >&2 "warning: 'convert' (ImageMagick) not found; background.png will stay at its"
+        echo >&2 "         bundled 1619x971 resolution and may look soft or oddly cropped."
+        echo >&2 "         Install imagemagick and re-run to fix."
+        DETECTED_WIDTH=''
+        DETECTED_HEIGHT=''
+    fi
+else
+    echo >&2 'warning: could not detect screen resolution; leaving GRUB_GFXMODE as-is'
+    echo >&2 '         and background.png at its bundled 1619x971 resolution.'
+fi
+
 # Detect distro and set GRUB location and update method
 GRUB_DIR='grub'
 UPDATE_GRUB=''
@@ -128,6 +185,12 @@ echo | sudo tee -a /etc/default/grub
 
 echo 'Adding theme to GRUB config'
 echo "GRUB_THEME=/boot/${GRUB_DIR}/themes/${GRUB_THEME}/theme.txt" | sudo tee -a /etc/default/grub
+
+if [[ -n "$DETECTED_WIDTH" && -n "$DETECTED_HEIGHT" ]]; then
+    echo 'Pinning GRUB_GFXMODE to the detected screen resolution'
+    sudo sed -i '/^GRUB_GFXMODE=/d' /etc/default/grub
+    echo "GRUB_GFXMODE=${DETECTED_WIDTH}x${DETECTED_HEIGHT},auto" | sudo tee -a /etc/default/grub
+fi
 
 echo 'Removing theme installation files'
 rm -rf "$PWD"
